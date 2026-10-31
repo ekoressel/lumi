@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Lumi</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b6cff">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lumi">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f6fb;
+  --surface:#ffffff;
+  --ink:#141a2e;
+  --ink-soft:#616a8c;
+  --ink-faint:#98a0bd;
+  --line:#e9ebf5;
+  --indigo:#5b6cff;
+  --violet:#8b5cf6;
+  --teal:#0fb9a6;
+  --amber:#f7a829;
+  --rose:#fb5c7d;
+  --sky:#3aa8f5;
+  --lime:#45c86a;
+  --r-xl:30px; --r-lg:22px; --r-md:16px; --r-sm:12px;
+  --sh-1:0 1px 2px rgba(20,26,46,.04), 0 6px 20px rgba(20,26,46,.055);
+  --sh-2:0 2px 6px rgba(20,26,46,.05), 0 20px 46px rgba(20,26,46,.10);
+  --sh-press:0 1px 2px rgba(20,26,46,.08);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:'Outfit',system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:var(--bg);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+#mesh{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+#mesh i{
+  position:absolute; display:block; border-radius:50%;
+  filter:blur(60px); opacity:.42;
+  animation:drift 26s var(--ease) infinite alternate;
+}
+@keyframes drift{
+  from{transform:translate3d(0,0,0) scale(1);}
+  to{transform:translate3d(5vw,-4vh,0) scale(1.18);}
+}
+.lit{ font-family:'Andika','Outfit',sans-serif; }
+
+/* ---------------- App frame ---------------- */
+#app{position:relative; z-index:1; min-height:100%; display:flex; flex-direction:column;}
+
+header#top{
+  position:sticky; top:0; z-index:40;
+  padding:calc(env(safe-area-inset-top) + 12px) clamp(14px,4vw,26px) 12px;
+  display:flex; align-items:center; gap:10px;
+  background:rgba(245,246,251,.78);
+  backdrop-filter:blur(18px) saturate(1.5);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border-bottom:1px solid rgba(233,235,245,.9);
+}
+.brand{display:flex; align-items:center; gap:9px; margin-right:auto; cursor:pointer;}
+.brand .mark{
+  width:36px; height:36px; border-radius:12px; flex:none;
+  background:linear-gradient(145deg,var(--indigo),var(--violet));
+  display:grid; place-items:center; font-size:19px; color:#fff;
+  box-shadow:0 6px 16px rgba(91,108,255,.38);
+}
+.brand .nm{font-size:20px; font-weight:800; letter-spacing:-.4px;}
+.chip{
+  border:none; background:var(--surface); color:var(--ink);
+  height:38px; min-width:38px; padding:0 11px; border-radius:13px;
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  font-family:inherit; font-size:15px; font-weight:700;
+  box-shadow:var(--sh-1); cursor:pointer;
+  transition:transform .16s var(--spring), box-shadow .16s var(--ease);
+}
+.chip:active{transform:scale(.93); box-shadow:var(--sh-press);}
+.chip.on{background:linear-gradient(145deg,var(--teal),#2bd3b2); color:#fff; box-shadow:0 6px 16px rgba(15,185,166,.34);}
+.starchip{
+  background:linear-gradient(145deg,#ffd166,var(--amber)); color:#5a3c00;
+  box-shadow:0 6px 16px rgba(247,168,41,.34);
+}
+.starchip.bump{animation:pop .5s var(--spring);}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+main{flex:1; padding:0 clamp(14px,4vw,26px) 104px; max-width:860px; width:100%; margin:0 auto;}
+.screen{display:none; animation:rise .4s var(--ease);}
+.screen.live{display:block;}
+@keyframes rise{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+
+/* ---------------- Home ---------------- */
+.hello{padding:22px 4px 16px;}
+.hello h1{font-size:clamp(27px,7vw,38px); font-weight:800; letter-spacing:-1px; line-height:1.08;}
+.hello p{color:var(--ink-soft); font-size:clamp(15px,3.6vw,17px); margin-top:6px; font-weight:500;}
+
+.jarcard{
+  background:var(--surface); border-radius:var(--r-xl); padding:clamp(18px,4.4vw,26px);
+  box-shadow:var(--sh-2); display:flex; align-items:center; gap:clamp(14px,4vw,26px);
+  position:relative; overflow:hidden;
+}
+.jarcard::after{
+  content:''; position:absolute; right:-70px; top:-70px; width:210px; height:210px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(247,168,41,.16), rgba(247,168,41,0) 70%);
+}
+.jar{
+  width:clamp(84px,22vw,108px); flex:none; position:relative;
+}
+.jar .lid{
+  height:11px; margin:0 auto; width:76%; border-radius:6px 6px 3px 3px;
+  background:linear-gradient(180deg,#cdd3e8,#aeb6d4);
+}
+.jar .body{
+  margin-top:3px; aspect-ratio:1/1.12; border-radius:14px 14px 26px 26px;
+  background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(226,232,248,.85));
+  border:3px solid #dfe4f3; position:relative; overflow:hidden;
+  box-shadow:inset 0 -10px 20px rgba(91,108,255,.07);
+}
+.jar .fill{
+  position:absolute; left:0; right:0; bottom:0;
+  background:linear-gradient(180deg,rgba(255,224,150,.6),rgba(247,168,41,.55));
+  transition:height .7s var(--spring);
+}
+.jar .pile{
+  position:absolute; inset:0; display:flex; flex-wrap:wrap-reverse;
+  align-content:flex-start; justify-content:center; padding:5px; gap:2px;
+}
+.jar .pile span{
+  font-size:clamp(13px,3.4vw,17px); line-height:1;
+  filter:drop-shadow(0 1px 1.5px rgba(120,64,0,.5));
+  animation:tw 2.6s ease-in-out infinite;
+}
+@keyframes tw{0%,100%{opacity:.85; transform:scale(1)}50%{opacity:1; transform:scale(1.14)}}
+.jar .glint{
+  position:absolute; left:14%; top:8%; width:16%; height:46%; border-radius:50%;
+  background:rgba(255,255,255,.75); filter:blur(2px);
+}
+.jarinfo{flex:1; min-width:0;}
+.jarinfo .lbl{font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-faint);}
+.jarinfo h2{font-size:clamp(19px,4.8vw,24px); font-weight:800; letter-spacing:-.5px; margin-top:4px; line-height:1.18;}
+.jarinfo .meter{height:12px; border-radius:99px; background:#eef0f9; overflow:hidden; margin-top:13px;}
+.jarinfo .meter b{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffd166,var(--amber)); transition:width .7s var(--spring);}
+.jarinfo .nxt{display:flex; align-items:center; gap:8px; margin-top:11px; color:var(--ink-soft); font-size:14px; font-weight:600;}
+.jarinfo .nxt .egg{font-size:19px;}
+
+.sechead{display:flex; align-items:baseline; gap:10px; padding:26px 4px 13px;}
+.sechead h3{font-size:clamp(17px,4.4vw,20px); font-weight:800; letter-spacing:-.4px;}
+.sechead span{color:var(--ink-faint); font-size:14px; font-weight:600; margin-left:auto;}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,218px),1fr)); gap:clamp(11px,2.8vw,16px);}
+.gcard{
+  border:none; text-align:left; font-family:inherit; cursor:pointer;
+  background:var(--surface); border-radius:var(--r-lg); padding:17px;
+  box-shadow:var(--sh-1); display:flex; flex-direction:column; gap:12px;
+  position:relative; overflow:hidden;
+  transition:transform .2s var(--spring), box-shadow .2s var(--ease);
+}
+.gcard:active{transform:scale(.965); box-shadow:var(--sh-press);}
+.gcard .ico{
+  width:52px; height:52px; border-radius:16px; display:grid; place-items:center;
+  font-size:26px; flex:none; color:#fff;
+}
+.gcard .ttl{font-size:17px; font-weight:800; letter-spacing:-.3px; line-height:1.2;}
+.gcard .sub{font-size:13.5px; color:var(--ink-soft); font-weight:500; margin-top:3px;}
+.gcard .rate{display:flex; gap:2px; margin-top:auto; font-size:14px; letter-spacing:1px;}
+.gcard .rate .off{filter:grayscale(1); opacity:.25;}
+.gcard .arrow{
+  position:absolute; right:15px; top:17px; width:28px; height:28px; border-radius:50%;
+  background:#f2f4fb; display:grid; place-items:center; color:var(--ink-faint); font-size:13px;
+}
+
+/* ---------------- Buddy club ---------------- */
+.bgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr)); gap:clamp(10px,2.6vw,15px);}
+.bcard{
+  background:var(--surface); border-radius:var(--r-lg); padding:16px 10px 13px;
+  box-shadow:var(--sh-1); text-align:center; position:relative; overflow:hidden;
+}
+.bcard .face{font-size:clamp(40px,10vw,52px); line-height:1; display:block;}
+.bcard .nm{font-size:14px; font-weight:700; margin-top:8px; letter-spacing:-.2px;}
+.bcard .tag{font-size:11.5px; color:var(--ink-faint); font-weight:600; margin-top:1px;}
+.bcard.got{background:linear-gradient(165deg,#fff,#f7f4ff); box-shadow:0 2px 6px rgba(20,26,46,.05),0 16px 34px rgba(139,92,246,.14);}
+.bcard.got .face{animation:bob 3.6s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+.bcard.locked .face{filter:grayscale(1) brightness(1.72) contrast(.42); opacity:.5;}
+.bcard.locked .nm{color:var(--ink-faint);}
+
+/* ---------------- Game shell ---------------- */
+.gtop{display:flex; align-items:center; gap:11px; padding:16px 0 4px;}
+.back{
+  border:none; background:var(--surface); width:42px; height:42px; border-radius:14px; flex:none;
+  box-shadow:var(--sh-1); font-size:19px; cursor:pointer; color:var(--ink);
+  transition:transform .16s var(--spring);
+}
+.back:active{transform:scale(.9);}
+.gtop .gt{min-width:0;}
+.gtop .gt b{display:block; font-size:clamp(18px,4.6vw,22px); font-weight:800; letter-spacing:-.5px; line-height:1.15;}
+.gtop .gt i{display:block; font-style:normal; font-size:13.5px; color:var(--ink-soft); font-weight:500;}
+.dots{display:flex; gap:6px; margin-left:auto; flex:none;}
+.dots i{width:9px; height:9px; border-radius:50%; background:#dde1ef; transition:all .35s var(--spring);}
+.dots i.done{background:linear-gradient(145deg,#ffd166,var(--amber)); transform:scale(1.1);}
+.dots i.now{background:var(--indigo); transform:scale(1.35); box-shadow:0 0 0 4px rgba(91,108,255,.17);}
+
+.stage{
+  background:var(--surface); border-radius:var(--r-xl); padding:clamp(18px,4.6vw,30px);
+  box-shadow:var(--sh-2); margin-top:14px; min-height:330px;
+  display:flex; flex-direction:column; align-items:center; gap:clamp(14px,3.4vw,22px);
+}
+.ask{display:flex; align-items:center; gap:10px; text-align:center; justify-content:center; flex-wrap:wrap;}
+.ask b{font-size:clamp(18px,4.6vw,23px); font-weight:700; letter-spacing:-.3px;}
+.hearbtn{
+  border:none; width:40px; height:40px; border-radius:50%; flex:none; cursor:pointer;
+  background:linear-gradient(145deg,var(--indigo),var(--violet)); color:#fff; font-size:17px;
+  box-shadow:0 6px 16px rgba(91,108,255,.34);
+  transition:transform .16s var(--spring);
+}
+.hearbtn:active{transform:scale(.88);}
+.hearbtn.big{width:clamp(80px,21vw,104px); height:clamp(80px,21vw,104px); font-size:clamp(34px,9vw,44px);}
+.hearbtn.ping{animation:ping 1.9s ease-out infinite;}
+@keyframes ping{0%{box-shadow:0 6px 16px rgba(91,108,255,.34),0 0 0 0 rgba(91,108,255,.4)}70%{box-shadow:0 6px 16px rgba(91,108,255,.34),0 0 0 22px rgba(91,108,255,0)}100%{box-shadow:0 6px 16px rgba(91,108,255,.34),0 0 0 0 rgba(91,108,255,0)}}
+
+.bigpic{font-size:clamp(76px,22vw,118px); line-height:1; animation:in .45s var(--spring);}
+@keyframes in{from{opacity:0; transform:scale(.6) rotate(-9deg);} to{opacity:1; transform:none;}}
+
+.fb{min-height:30px; font-size:clamp(16px,4vw,19px); font-weight:700; text-align:center;}
+.fb.ok{color:var(--lime);}
+.fb.no{color:var(--rose);}
+
+.opts{display:grid; gap:clamp(9px,2.4vw,14px); width:100%; max-width:560px;}
+.opts.c2{grid-template-columns:repeat(2,1fr);}
+.opts.c3{grid-template-columns:repeat(3,1fr);}
+.opt{
+  border:2.5px solid var(--line); background:#fcfcff; border-radius:var(--r-lg);
+  padding:clamp(13px,3.4vw,20px) 10px; cursor:pointer; font-family:inherit; color:var(--ink);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+  min-height:clamp(84px,22vw,116px);
+  transition:transform .18s var(--spring), border-color .2s, background .2s, box-shadow .2s;
+}
+.opt:active{transform:scale(.95);}
+.opt .pic{font-size:clamp(38px,10vw,54px); line-height:1;}
+.opt .txt{font-size:clamp(22px,6vw,32px); font-weight:700; letter-spacing:1.5px;}
+.opt .num{font-size:clamp(30px,8vw,44px); font-weight:800; letter-spacing:-1px;}
+.opt.good{border-color:var(--lime); background:#edfdf3; box-shadow:0 0 0 6px rgba(69,200,106,.13); animation:pop .5s var(--spring);}
+.opt.bad{border-color:var(--rose); background:#fff0f3; animation:shake .42s;}
+.opt.dim{opacity:.4;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* word builder */
+.slots{display:flex; gap:clamp(7px,2.2vw,12px); justify-content:center; flex-wrap:wrap;}
+.slot{
+  width:clamp(52px,14.5vw,72px); height:clamp(62px,17vw,86px); border-radius:var(--r-md);
+  border:3px dashed #d6dcf0; background:#fafbff;
+  display:grid; place-items:center;
+  font-family:'Andika','Outfit',sans-serif; font-weight:700;
+  font-size:clamp(30px,8.4vw,44px); color:var(--ink);
+  transition:all .25s var(--spring);
+}
+.slot.has{border-style:solid; border-color:var(--indigo); background:#f3f5ff; box-shadow:0 6px 16px rgba(91,108,255,.16);}
+.slot.win{border-color:var(--lime); background:#edfdf3; box-shadow:0 0 0 5px rgba(69,200,106,.14);}
+.slot.err{border-color:var(--rose); background:#fff0f3; animation:shake .42s;}
+.tiles{display:flex; gap:clamp(7px,2.2vw,12px); justify-content:center; flex-wrap:wrap;}
+.tile{
+  width:clamp(50px,13.6vw,66px); height:clamp(50px,13.6vw,66px); border:none; cursor:pointer;
+  border-radius:var(--r-md); background:linear-gradient(160deg,#fff,#eef1fc);
+  box-shadow:0 4px 0 #d3d9ee, 0 8px 18px rgba(20,26,46,.09);
+  font-family:'Andika','Outfit',sans-serif; font-weight:700; color:var(--ink);
+  font-size:clamp(25px,7vw,34px);
+  transition:transform .15s var(--spring), opacity .2s;
+}
+.tile:active{transform:translateY(3px); box-shadow:0 1px 0 #d3d9ee, 0 4px 10px rgba(20,26,46,.09);}
+.tile.used{opacity:0; pointer-events:none; transform:scale(.4);}
+
+/* pattern strip */
+.strip{display:flex; gap:clamp(6px,2vw,11px); justify-content:center; align-items:center; flex-wrap:wrap;}
+.cell{
+  width:clamp(52px,14vw,70px); height:clamp(52px,14vw,70px); border-radius:var(--r-md);
+  background:#f7f8fd; display:grid; place-items:center; font-size:clamp(28px,7.6vw,38px);
+  box-shadow:inset 0 0 0 2px #edf0f9;
+}
+.cell.q{
+  background:linear-gradient(160deg,#eef1ff,#e4e9ff); box-shadow:inset 0 0 0 3px var(--indigo);
+  color:var(--indigo); font-weight:800; font-size:clamp(26px,7vw,34px);
+  animation:tw 1.8s ease-in-out infinite;
+}
+.cell.filled{background:#edfdf3; box-shadow:inset 0 0 0 3px var(--lime);}
+
+/* counting field */
+/* rows of five so counting stays structured, like a ten-frame */
+.field{
+  display:grid; grid-template-columns:repeat(5,auto); justify-content:center; align-content:center;
+  gap:clamp(5px,2vw,12px); min-height:120px;
+}
+.field span{font-size:clamp(25px,7vw,36px); line-height:1; animation:in .3s var(--spring) backwards;}
+.pens{display:flex; gap:clamp(10px,3vw,18px); width:100%; justify-content:center; flex-wrap:wrap;}
+.pen{
+  flex:1 1 150px; max-width:230px; border:2.5px solid var(--line); background:#fcfcff;
+  border-radius:var(--r-lg); padding:14px 10px; cursor:pointer; font-family:inherit;
+  display:flex; flex-wrap:wrap; justify-content:center; align-content:center; gap:5px;
+  min-height:clamp(112px,28vw,150px);
+  transition:transform .18s var(--spring), border-color .2s, background .2s, box-shadow .2s;
+}
+.pen span{font-size:clamp(22px,6vw,30px); line-height:1;}
+.pen:active{transform:scale(.96);}
+.pen.good{border-color:var(--lime); background:#edfdf3; box-shadow:0 0 0 6px rgba(69,200,106,.13);}
+.pen.bad{border-color:var(--rose); background:#fff0f3; animation:shake .42s;}
+
+/* tracing */
+.tracewrap{position:relative; width:min(100%,330px); aspect-ratio:1/1;}
+#traceCv{
+  position:absolute; inset:0; width:100%; height:100%; touch-action:none;
+  border-radius:var(--r-lg); background:#fbfcff;
+  box-shadow:inset 0 0 0 2px var(--line);
+}
+.tracetools{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
+.btn{
+  border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:16px;
+  padding:13px 22px; border-radius:16px; color:var(--ink); background:#f1f3fb;
+  box-shadow:var(--sh-1); transition:transform .16s var(--spring);
+}
+.btn:active{transform:scale(.94);}
+.btn.go{background:linear-gradient(145deg,var(--indigo),var(--violet)); color:#fff; box-shadow:0 7px 18px rgba(91,108,255,.34);}
+.btn.ghost{background:#fff;}
+
+/* ---------------- Bottom nav ---------------- */
+nav#bot{
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
+  padding:9px clamp(14px,4vw,26px) calc(env(safe-area-inset-bottom) + 9px);
+  background:rgba(245,246,251,.86);
+  backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  border-top:1px solid rgba(233,235,245,.9);
+  display:flex; gap:8px; justify-content:center;
+}
+nav#bot button{
+  border:none; background:none; font-family:inherit; cursor:pointer; color:var(--ink-faint);
+  padding:8px 20px; border-radius:15px; display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-size:11.5px; font-weight:700; letter-spacing:.2px;
+  transition:color .2s, background .2s;
+}
+nav#bot button em{font-style:normal; font-size:21px; line-height:1;}
+nav#bot button.on{color:var(--indigo); background:rgba(91,108,255,.09);}
+
+/* ---------------- Overlays ---------------- */
+.sheet{
+  position:fixed; inset:0; z-index:70; display:none;
+  background:rgba(20,26,46,.42); backdrop-filter:blur(5px);
+  align-items:center; justify-content:center; padding:22px;
+}
+.sheet.show{display:flex; animation:fade .25s var(--ease);}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.panel{
+  background:var(--surface); border-radius:var(--r-xl); padding:clamp(22px,5vw,32px);
+  width:100%; max-width:420px; box-shadow:0 30px 70px rgba(20,26,46,.3);
+  text-align:center; animation:rise .35s var(--spring); position:relative;
+  max-height:88vh; overflow-y:auto;
+}
+.panel h3{font-size:22px; font-weight:800; letter-spacing:-.5px;}
+.panel p{color:var(--ink-soft); font-size:14.5px; font-weight:500; margin-top:8px; line-height:1.5;}
+.x{position:absolute; right:14px; top:14px; border:none; background:#f1f3fb; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px; color:var(--ink-soft);}
+.codebox{
+  margin-top:16px; background:#f6f7fd; border-radius:var(--r-md); padding:14px;
+  display:flex; align-items:center; gap:10px; justify-content:center;
+  font-size:19px; font-weight:800; letter-spacing:1.2px; border:2px dashed #dfe3f2;
+}
+.codebox button{border:none; background:var(--indigo); color:#fff; font-family:inherit; font-weight:700; font-size:13px; padding:7px 13px; border-radius:10px; cursor:pointer;}
+.syncrow{display:flex; gap:9px; margin-top:12px;}
+.syncrow input{
+  flex:1; min-width:0; border:2.5px solid var(--line); border-radius:14px; padding:13px;
+  font-family:inherit; font-size:16px; font-weight:700; text-align:center; letter-spacing:1px;
+  text-transform:uppercase; color:var(--ink); background:#fcfcff;
+}
+.syncrow input:focus{outline:none; border-color:var(--indigo);}
+.or{color:var(--ink-faint); font-size:12.5px; font-weight:700; letter-spacing:1.4px; margin:16px 0 4px;}
+.wide{width:100%; margin-top:14px; padding:15px;}
+.note{margin-top:14px; font-size:13px; font-weight:600; color:var(--ink-soft); min-height:18px;}
+.note.err{color:var(--rose);}
+
+/* celebration */
+#celebrate .panel{max-width:360px;}
+.eggbox{font-size:clamp(84px,24vw,116px); line-height:1; margin:6px 0;}
+.eggbox.crack{animation:wiggle .5s ease-in-out 3;}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-11deg)}75%{transform:rotate(11deg)}}
+.eggbox.hatch{animation:burst .7s var(--spring);}
+@keyframes burst{0%{transform:scale(0) rotate(-40deg); opacity:0}60%{transform:scale(1.3) rotate(8deg)}100%{transform:scale(1) rotate(0); opacity:1}}
+.conf{position:fixed; z-index:90; pointer-events:none; font-size:17px; will-change:transform,opacity;}
+
+.toast{
+  position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 86px); transform:translateX(-50%) translateY(26px);
+  background:var(--ink); color:#fff; padding:12px 20px; border-radius:99px;
+  font-size:14.5px; font-weight:700; z-index:80; opacity:0; pointer-events:none;
+  transition:all .35s var(--spring); white-space:nowrap; max-width:88vw;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.flystar{position:fixed; z-index:85; font-size:26px; pointer-events:none; transition:transform .75s var(--ease), opacity .75s var(--ease);}
+
+.empty{text-align:center; padding:50px 20px; color:var(--ink-faint);}
+.empty .f{font-size:52px;}
+.empty p{margin-top:12px; font-weight:600; font-size:15px;}
+</style>
+</head>
+<body>
+
+<div id="mesh"></div>
+
+<div id="app">
+  <header id="top">
+    <div class="brand" id="brand">
+      <div class="mark">✦</div>
+      <div class="nm">Lumi</div>
+    </div>
+    <button class="chip starchip" id="starChip" title="Your stars">⭐ <span id="starCount">0</span></button>
+    <button class="chip" id="soundBtn" title="Voice on/off">🔊</button>
+    <button class="chip" id="syncBtn" title="Family Code">☁️</button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section class="screen live" id="s-home">
+      <div class="hello">
+        <h1 id="greet">Hi there!</h1>
+        <p id="greetSub">Pick a game and fill your star jar.</p>
+      </div>
+
+      <div class="jarcard">
+        <div class="jar">
+          <div class="lid"></div>
+          <div class="body">
+            <div class="fill" id="jarFill" style="height:0%"></div>
+            <div class="pile" id="jarPile"></div>
+            <div class="glint"></div>
+          </div>
+        </div>
+        <div class="jarinfo">
+          <div class="lbl">Star Jar</div>
+          <h2 id="jarTitle">Collect 10 stars</h2>
+          <div class="meter"><b id="jarMeter" style="width:0%"></b></div>
+          <div class="nxt"><span class="egg" id="jarEgg">🥚</span><span id="jarNext">10 more stars to hatch a buddy!</span></div>
+        </div>
+      </div>
+
+      <div class="sechead"><h3>Games</h3><span id="gameTally"></span></div>
+      <div class="grid" id="gameGrid"></div>
+    </section>
+
+    <!-- BUDDIES -->
+    <section class="screen" id="s-buddies">
+      <div class="hello">
+        <h1>Buddy Club</h1>
+        <p id="budSub">Fill your star jar to hatch a new friend.</p>
+      </div>
+      <div class="bgrid" id="budGrid"></div>
+    </section>
+
+    <!-- GAME -->
+    <section class="screen" id="s-game">
+      <div class="gtop">
+        <button class="back" id="backBtn">←</button>
+        <div class="gt"><b id="gName">Game</b><i id="gSub">Let's play</i></div>
+        <div class="dots" id="gDots"></div>
+      </div>
+      <div class="stage" id="stage"></div>
+    </section>
+  </main>
+
+  <nav id="bot">
+    <button data-go="home" class="on"><em>🎮</em>Play</button>
+    <button data-go="buddies"><em>🐾</em>Buddies</button>
+  </nav>
+</div>
+
+<!-- Family Code -->
+<div class="sheet" id="syncSheet">
+  <div class="panel">
+    <button class="x" id="syncX">✕</button>
+    <h3>Family Code ☁️</h3>
+    <p>Use one code to keep stars and buddies the same on every device.</p>
+    <div id="syncOn" style="display:none">
+      <div class="codebox"><span id="syncCode">—</span><button id="syncCopy">Copy</button></div>
+      <p style="margin-top:12px">Type this exact code on your other devices to link them.</p>
+    </div>
+    <div id="syncOff">
+      <button class="btn go wide" id="syncMake">✨ Create my Family Code</button>
+      <div class="or">— OR —</div>
+      <div class="syncrow">
+        <input id="syncIn" type="text" autocomplete="off" spellcheck="false" placeholder="TYPE A CODE">
+        <button class="btn go" id="syncJoin">Link</button>
+      </div>
+    </div>
+    <div class="note" id="syncNote"></div>
+  </div>
+</div>
+
+<!-- Buddy hatch celebration -->
+<div class="sheet" id="celebrate">
+  <div class="panel">
+    <div class="lbl" style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint)" id="celLbl">Your jar is full!</div>
+    <div class="eggbox" id="celEgg">🥚</div>
+    <h3 id="celName">A new buddy!</h3>
+    <p id="celMsg">Tap the egg to hatch it.</p>
+    <button class="btn go wide" id="celBtn">Tap to hatch!</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   LUMI — a TK learning app
+   Games: word building, first sounds, word→picture reading,
+   patterns, counting 1–20, letter tracing.
+   Reward loop: every correct answer = 1 star → 10 stars fills the
+   Star Jar → a new Buddy hatches into the Buddy Club.
+   ============================================================ */
+
+/* ============================================================
+   ☁️ CLOUD CONFIG — paste your Supabase values between the quotes.
+   Supabase → Project Settings → API.  Leave as-is for
+   "this device only" mode (everything still works offline).
+   ============================================================ */
+const SUPABASE_URL      = 'PASTE_YOUR_PROJECT_URL_HERE';
+const SUPABASE_ANON_KEY  = 'PASTE_YOUR_ANON_KEY_HERE';
+
+const KID_NAME = 'Brayden';      // shown on the home screen
+
+/* ---------- tiny helpers ---------- */
+const $ = id => document.getElementById(id);
+const rand = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=rand(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function sample(a,n){ return shuffle(a).slice(0,n); }
+
+/* ---------- state ---------- */
+const SAVE_KEY = 'lumi_v1';
+const JAR_SIZE = 10;
+const state = { stars:0, best:{}, voice:true, code:null, t:0 };
+
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(s){
+      state.stars = s.stars|0;
+      state.best  = (s.best && typeof s.best==='object') ? s.best : {};
+      state.voice = s.voice !== false;
+      state.code  = s.code || null;
+      state.t     = s.t || 0;
+    }
+  }catch(e){}
+}
+const snapshot = () => ({ stars:state.stars, best:state.best, voice:state.voice, t:state.t });
+function persistLocal(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
+function save(){ state.t = Date.now(); persistLocal(); scheduleCloudPush(); }
+load();
+
+/* ============================================================
+   SOUND
+   ============================================================ */
+let actx = null;
+function audio(){
+  if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, at, dur, type='sine', vol=0.16){
+  const a = audio(); if(!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  o.connect(g); g.connect(a.destination);
+  const t = a.currentTime + at;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.start(t); o.stop(t+dur+0.02);
+}
+const sndYes   = () => { tone(523.25,0,.17,'triangle'); tone(659.25,.09,.17,'triangle'); tone(783.99,.18,.26,'triangle'); tone(1046.5,.29,.34,'sine',.12); };
+const sndNo    = () => { tone(392,0,.15,'sine',.12); tone(311.13,.13,.21,'sine',.11); };
+const sndStar  = () => { tone(880,0,.07,'square',.09); tone(1318.5,.06,.11,'square',.07); };
+const sndTap   = () => tone(660,0,.05,'sine',.07);
+const sndParty = () => [523,659,784,1046,1318,1568].forEach((f,i)=>tone(f,i*.085,.3,'triangle',.12));
+
+/* ============================================================
+   VOICE
+   ============================================================ */
+let voiceList = [];
+function bestVoice(){
+  voiceList = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+  return voiceList.find(v=>/en(-|_)?(US|GB)/i.test(v.lang) && /samantha|karen|zira|female|google us/i.test(v.name))
+      || voiceList.find(v=>/^en/i.test(v.lang)) || voiceList[0] || null;
+}
+if(window.speechSynthesis){ speechSynthesis.onvoiceschanged = bestVoice; bestVoice(); }
+function speak(text, rate){
+  if(!state.voice || !window.speechSynthesis || !text) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = bestVoice(); if(v) u.voice = v;
+    u.rate = rate || .88; u.pitch = 1.15; u.volume = 1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function spellOut(word){
+  if(!state.voice || !window.speechSynthesis) return;
+  try{
+    speechSynthesis.cancel();
+    word.split('').forEach(ch=>{
+      const u = new SpeechSynthesisUtterance(ch);
+      const v = bestVoice(); if(v) u.voice = v;
+      u.rate = .62; u.pitch = 1.1;
+      speechSynthesis.speak(u);
+    });
+    const w = new SpeechSynthesisUtterance(word);
+    const v = bestVoice(); if(v) w.voice = v;
+    w.rate = .72; w.pitch = 1.15;
+    speechSynthesis.speak(w);
+  }catch(e){}
+}
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+// 3- and 4-letter words with a clear picture
+const WORDS = [
+  {w:'cat',e:'🐱'},{w:'dog',e:'🐶'},{w:'sun',e:'☀️'},{w:'bus',e:'🚌'},{w:'pig',e:'🐷'},
+  {w:'cow',e:'🐮'},{w:'bee',e:'🐝'},{w:'bat',e:'🦇'},{w:'fox',e:'🦊'},{w:'owl',e:'🦉'},
+  {w:'ant',e:'🐜'},{w:'cup',e:'🥤'},{w:'hat',e:'🎩'},{w:'box',e:'📦'},{w:'bed',e:'🛏️'},
+  {w:'car',e:'🚗'},{w:'key',e:'🔑'},{w:'pen',e:'🖊️'},{w:'pie',e:'🥧'},{w:'pot',e:'🍲'},
+  {w:'web',e:'🕸️'},{w:'egg',e:'🥚'},{w:'jam',e:'🍯'},{w:'log',e:'🪵'},{w:'nut',e:'🥜'},
+  {w:'map',e:'🗺️'},{w:'ice',e:'🧊'},{w:'eye',e:'👁️'},{w:'ear',e:'👂'},{w:'hen',e:'🐔'},
+  {w:'jar',e:'🫙'},{w:'leg',e:'🦵'},{w:'van',e:'🚐'},{w:'saw',e:'🪚'},{w:'axe',e:'🪓'},
+  {w:'bag',e:'🎒'},{w:'cap',e:'🧢'},{w:'fan',e:'🪭'},{w:'mug',e:'☕'},{w:'bug',e:'🐛'},
+  {w:'rat',e:'🐀'},{w:'toe',e:'🦶'},{w:'ten',e:'🔟'},
+  {w:'fish',e:'🐟'},{w:'frog',e:'🐸'},{w:'star',e:'⭐'},{w:'moon',e:'🌙'},{w:'tree',e:'🌳'},
+  {w:'milk',e:'🥛'},{w:'cake',e:'🍰'},{w:'book',e:'📖'},{w:'duck',e:'🦆'},{w:'bird',e:'🐦'},
+  {w:'crab',e:'🦀'},{w:'drum',e:'🥁'},{w:'ship',e:'🚢'},{w:'sock',e:'🧦'},{w:'bell',e:'🔔'},
+  {w:'corn',e:'🌽'},{w:'hand',e:'✋'},{w:'lamp',e:'💡'},{w:'rain',e:'🌧️'},{w:'shoe',e:'👟'},
+  {w:'snow',e:'❄️'},{w:'bear',e:'🐻'},{w:'lion',e:'🦁'},{w:'goat',e:'🐐'},{w:'leaf',e:'🍃'},
+  {w:'rose',e:'🌹'},{w:'kite',e:'🪁'},{w:'bone',e:'🦴'},{w:'ball',e:'⚽'},{w:'boat',e:'⛵'},
+  {w:'fire',e:'🔥'},{w:'gift',e:'🎁'},{w:'lock',e:'🔒'},{w:'pear',e:'🍐'},{w:'rice',e:'🍚'},
+  {w:'seal',e:'🦭'},{w:'soap',e:'🧼'},{w:'worm',e:'🪱'},{w:'bath',e:'🛁'},{w:'cart',e:'🛒'},
+  {w:'nest',e:'🪹'},{w:'ring',e:'💍'},{w:'coin',e:'🪙'},{w:'wind',e:'🌬️'}
+];
+// letters that share a sound — never offer them against each other in First Sound,
+// or a child reasoning by ear gets marked wrong for being right
+const SOUND_TWINS = { c:'ksq', k:'cq', s:'cz', z:'sx', g:'j', j:'g', q:'ck', x:'z' };
+const W3 = WORDS.filter(x=>x.w.length===3);
+const W4 = WORDS.filter(x=>x.w.length===4);
+
+const BUDDIES = [
+  {e:'🐼',n:'Pip',t:'panda'},    {e:'🦊',n:'Ember',t:'fox'},
+  {e:'🐸',n:'Hop',t:'frog'},     {e:'🦉',n:'Professor',t:'owl'},
+  {e:'🐙',n:'Noodle',t:'octopus'},{e:'🦄',n:'Twinkle',t:'unicorn'},
+  {e:'🐧',n:'Waddle',t:'penguin'},{e:'🦖',n:'Rex',t:'dino'},
+  {e:'🐢',n:'Shelly',t:'turtle'},{e:'🐝',n:'Buzz',t:'bee'},
+  {e:'🦁',n:'Mane',t:'lion'},    {e:'🐨',n:'Snooze',t:'koala'},
+  {e:'🦋',n:'Flutter',t:'butterfly'},{e:'🐳',n:'Splash',t:'whale'},
+  {e:'🦔',n:'Prickle',t:'hedgehog'},{e:'🐉',n:'Blaze',t:'dragon'}
+];
+
+const GAMES = [
+  {id:'spell',  name:'Word Builder',  sub:'Spell the picture',     icon:'🔤', g:['#5b6cff','#8b5cf6']},
+  {id:'sound',  name:'First Sound',   sub:'Listen for the letter', icon:'👂', g:['#0fb9a6','#45c86a']},
+  {id:'read',   name:'Read & Find',   sub:'Match word to picture', icon:'📖', g:['#f7a829','#fb7a3c']},
+  {id:'pattern',name:'Pattern Play',  sub:'What comes next?',      icon:'🧩', g:['#fb5c7d','#f472b6']},
+  {id:'count',  name:'Count It',      sub:'Numbers 1 to 20',       icon:'🔢', g:['#3aa8f5','#5b6cff']},
+  {id:'trace',  name:'Letter Tracing',sub:'Write your letters',    icon:'✏️', g:['#8b5cf6','#c084fc']}
+];
+const ROUNDS = 6;
+
+const CHEERS = ['Yes! 🎉','Perfect! ⭐','You got it! 💫','Nice work! 🙌','Wow! 🤩','Great job! 👏','Brilliant! ✨'];
+const NUDGES = ['Almost — try again!','Good try! Have another go.','Not quite — you can do it!','Keep going, try once more!'];
+
+/* ============================================================
+   STARS, JAR, BUDDIES
+   ============================================================ */
+const buddiesOwned = () => Math.min(Math.floor(state.stars / JAR_SIZE), BUDDIES.length);
+const jarCount     = () => buddiesOwned() >= BUDDIES.length ? JAR_SIZE : state.stars % JAR_SIZE;
+
+function renderStars(){ $('starCount').textContent = state.stars; }
+
+function renderJar(){
+  const n = jarCount(), pct = n/JAR_SIZE*100;
+  $('jarFill').style.height = pct + '%';
+  $('jarMeter').style.width = pct + '%';
+  $('jarPile').innerHTML = Array.from({length:n},(_,i)=>
+    `<span style="animation-delay:${(i*.18).toFixed(2)}s">⭐</span>`).join('');
+  const owned = buddiesOwned(), left = JAR_SIZE - n;
+  if(owned >= BUDDIES.length){
+    $('jarTitle').textContent = 'All buddies found!';
+    $('jarEgg').textContent = '🏆';
+    $('jarNext').textContent = `You collected all ${BUDDIES.length} buddies!`;
+  } else {
+    $('jarTitle').textContent = `${n} of ${JAR_SIZE} stars`;
+    $('jarEgg').textContent = '🥚';
+    $('jarNext').textContent = left === 1 ? '1 more star to hatch a buddy!' : `${left} more stars to hatch a buddy!`;
+  }
+  $('budSub').textContent = owned
+    ? `${owned} of ${BUDDIES.length} buddies found. ${left} more stars for the next one!`
+    : 'Fill your star jar to hatch a new friend.';
+}
+
+let pendingHatch = 0;
+
+function addStar(fromEl, n=1){
+  flyStars(fromEl, Math.min(n,3));
+  setTimeout(()=>{
+    for(let i=0;i<n;i++){
+      state.stars++;
+      if(state.stars % JAR_SIZE === 0 && buddiesOwned() <= BUDDIES.length) pendingHatch++;
+    }
+    renderStars(); renderJar(); save();
+    const chip = $('starChip');
+    chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump');
+    sndStar();
+  }, 620);
+}
+
+function flyStars(fromEl, count){
+  const tb = $('starChip').getBoundingClientRect();
+  const tx = tb.left + tb.width/2, ty = tb.top + tb.height/2;
+  let sx = innerWidth/2, sy = innerHeight/2;
+  if(fromEl){ const r = fromEl.getBoundingClientRect(); sx = r.left+r.width/2; sy = r.top+r.height/2; }
+  for(let i=0;i<count;i++){
+    const s = document.createElement('div');
+    s.className='flystar'; s.textContent='⭐';
+    s.style.left=(sx-13)+'px'; s.style.top=(sy-13)+'px';
+    document.body.appendChild(s);
+    const jx=(Math.random()-.5)*60, jy=(Math.random()-.5)*40;
+    requestAnimationFrame(()=>{ s.style.transform=`translate(${jx}px,${jy}px) scale(1.4)`; });
+    setTimeout(()=>{ s.style.transform=`translate(${tx-sx}px,${ty-sy}px) scale(.4)`; s.style.opacity='0'; }, 110+i*85);
+    setTimeout(()=>s.remove(), 980+i*85);
+  }
+}
+
+function confetti(n=46){
+  const bits = ['⭐','✨','🎉','💫','🌟','🎊','💖'];
+  for(let i=0;i<n;i++){
+    const c = document.createElement('div');
+    c.className='conf'; c.textContent = pick(bits);
+    c.style.left = rand(2,96)+'vw'; c.style.top = '-6vh';
+    c.style.fontSize = rand(14,30)+'px';
+    document.body.appendChild(c);
+    const dur = rand(1500,2900), drift = rand(-130,130), spin = rand(-540,540);
+    c.animate(
+      [{transform:'translate(0,0) rotate(0)', opacity:1},
+       {transform:`translate(${drift}px,${innerHeight+120}px) rotate(${spin}deg)`, opacity:.15}],
+      {duration:dur, easing:'cubic-bezier(.3,.6,.5,1)', fill:'forwards'}
+    );
+    setTimeout(()=>c.remove(), dur+120);
+  }
+}
+
+/* ---------- buddy hatch ---------- */
+function runHatch(){
+  if(pendingHatch <= 0) return false;
+  pendingHatch--;
+  const idx = buddiesOwned() - 1;
+  const b = BUDDIES[Math.max(0,Math.min(idx, BUDDIES.length-1))];
+  const egg = $('celEgg'), btn = $('celBtn');
+  $('celLbl').textContent = 'Your star jar is full!';
+  $('celName').textContent = 'A new buddy is coming!';
+  $('celMsg').textContent  = 'Tap the button to hatch the egg.';
+  egg.textContent = '🥚'; egg.className = 'eggbox';
+  btn.textContent = 'Tap to hatch! 🥚';
+  $('celebrate').classList.add('show');
+  sndParty();
+  speak('Your star jar is full! A new buddy is coming!');
+
+  btn.onclick = () => {
+    egg.className = 'eggbox crack';
+    sndTap();
+    setTimeout(()=>{
+      egg.textContent = b.e; egg.className = 'eggbox hatch';
+      $('celLbl').textContent = 'New buddy unlocked';
+      $('celName').textContent = `Meet ${b.n} the ${b.t}!`;
+      $('celMsg').textContent  = `${b.n} is waiting for you in the Buddy Club.`;
+      btn.textContent = 'Yay! 🎉';
+      confetti(60); sndParty();
+      speak(`Meet ${b.n} the ${b.t}!`);
+      btn.onclick = () => {
+        $('celebrate').classList.remove('show');
+        if(!runHatch()) renderBuddies();
+      };
+    }, 1500);
+  };
+  return true;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+let screen = 'home';
+function go(id){
+  stopTrace();
+  try{ speechSynthesis.cancel(); }catch(e){}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('live'));
+  const target = GAMES.some(g=>g.id===id) ? 's-game' : 's-'+id;
+  $(target).classList.add('live');
+  screen = id;
+  const navId = GAMES.some(g=>g.id===id) ? null : id;
+  document.querySelectorAll('#bot button').forEach(b=>b.classList.toggle('on', b.dataset.go===navId));
+  scrollTo({top:0, behavior:'smooth'});
+  if(id==='home'){ renderHome(); }
+  if(id==='buddies'){ renderBuddies(); speak('Here are your buddies!'); }
+  if(GAMES.some(g=>g.id===id)) startGame(id);
+}
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   HOME / BUDDIES RENDERING
+   ============================================================ */
+function starStr(n){
+  return Array.from({length:3},(_,i)=>`<span class="${i<n?'':'off'}">⭐</span>`).join('');
+}
+function renderHome(){
+  const h = new Date().getHours();
+  const part = h<12 ? 'Good morning' : h<17 ? 'Good afternoon' : 'Good evening';
+  $('greet').textContent = `${part}, ${KID_NAME}!`;
+  const owned = buddiesOwned();
+  $('greetSub').textContent = owned
+    ? `You have ${state.stars} stars and ${owned} ${owned===1?'buddy':'buddies'}. Keep going!`
+    : 'Pick a game and start filling your star jar.';
+  renderJar();
+
+  const done = GAMES.filter(g=>(state.best[g.id]||0)>0).length;
+  $('gameTally').textContent = `${done}/${GAMES.length} with stars`;
+
+  $('gameGrid').innerHTML = GAMES.map(g=>`
+    <button class="gcard" data-game="${g.id}">
+      <div class="ico" style="background:linear-gradient(145deg,${g.g[0]},${g.g[1]}); box-shadow:0 7px 18px ${g.g[0]}55">${g.icon}</div>
+      <div>
+        <div class="ttl">${g.name}</div>
+        <div class="sub">${g.sub}</div>
+      </div>
+      <div class="rate">${starStr(state.best[g.id]||0)}</div>
+      <div class="arrow">›</div>
+    </button>`).join('');
+  $('gameGrid').querySelectorAll('[data-game]').forEach(b=>{
+    b.addEventListener('click', ()=>{ sndTap(); go(b.dataset.game); });
+  });
+}
+
+function renderBuddies(){
+  const owned = buddiesOwned();
+  renderJar();
+  $('budGrid').innerHTML = BUDDIES.map((b,i)=>{
+    const got = i < owned;
+    return `<div class="bcard ${got?'got':'locked'}">
+      <span class="face">${got ? b.e : '🥚'}</span>
+      <div class="nm">${got ? b.n : '???'}</div>
+      <div class="tag">${got ? b.t : `${(i+1)*JAR_SIZE} stars`}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   GAME SHELL
+   ============================================================ */
+let round = 0, misses = 0, curGame = null;
+
+function renderDots(){
+  $('gDots').innerHTML = Array.from({length:ROUNDS},(_,i)=>
+    `<i class="${i<round?'done':i===round?'now':''}"></i>`).join('');
+}
+
+function startGame(id){
+  curGame = GAMES.find(g=>g.id===id);
+  round = 0; misses = 0;
+  $('gName').textContent = curGame.name;
+  $('gSub').textContent  = curGame.sub;
+  renderDots();
+  nextRound();
+}
+
+function nextRound(){
+  renderDots();
+  if(round >= ROUNDS){ finishGame(); return; }
+  ({ spell:roundSpell, sound:roundSound, read:roundRead,
+     pattern:roundPattern, count:roundCount, trace:roundTrace })[curGame.id]();
+}
+
+// one correct answer: star + advance
+function win(fromEl, msg){
+  sndYes();
+  const m = msg || pick(CHEERS);
+  speak(m.replace(/[^\w !?]/g,''));
+  addStar(fromEl, 1);
+  round++;
+  setTimeout(nextRound, 1500);
+}
+function lose(){
+  sndNo(); misses++;
+  const m = pick(NUDGES);
+  speak(m);
+  return m;
+}
+
+function finishGame(){
+  const earned = misses <= 1 ? 3 : misses <= 3 ? 2 : 1;
+  const prev = state.best[curGame.id] || 0;
+  const isBest = earned > prev;
+  if(isBest) state.best[curGame.id] = earned;
+  save();
+  sndParty(); confetti(50);
+  addStar(null, 2); // completion bonus
+
+  $('stage').innerHTML = `
+    <div class="bigpic">🏅</div>
+    <div class="ask"><b>You finished ${curGame.name}!</b></div>
+    <div style="font-size:40px; letter-spacing:4px">${starStr(earned)}</div>
+    <div class="fb ok">${isBest ? 'New best score!' : 'Great playing!'} +2 bonus stars</div>
+    <div class="tracetools">
+      <button class="btn go" id="againBtn">Play again 🔁</button>
+      <button class="btn ghost" id="homeBtn">Back to games 🏠</button>
+    </div>`;
+  speak(`Amazing! You earned ${earned} ${earned===1?'star':'stars'}!`);
+  $('againBtn').onclick = ()=>{ sndTap(); startGame(curGame.id); };
+  $('homeBtn').onclick  = ()=>{ sndTap(); go('home'); };
+  setTimeout(()=>{ if(pendingHatch>0) runHatch(); }, 1700);
+}
+
+/* helper: build an options grid and wire single-correct choice */
+function choiceGrid(items, correctIdx, cols, onDone){
+  const opts = document.createElement('div');
+  opts.className = 'opts c'+cols;
+  items.forEach((html,i)=>{
+    const b = document.createElement('button');
+    b.className = 'opt'; b.innerHTML = html;
+    b.addEventListener('click', ()=>{
+      if(opts.dataset.locked) return;
+      if(i === correctIdx){
+        opts.dataset.locked = '1';
+        b.classList.add('good');
+        [...opts.children].forEach(c=>{ if(c!==b) c.classList.add('dim'); });
+        onDone(true, b);
+      } else {
+        b.classList.add('bad');
+        b.disabled = true;
+        onDone(false, b);
+      }
+    });
+    opts.appendChild(b);
+  });
+  return opts;
+}
+
+/* ============================================================
+   GAME 1 — WORD BUILDER  (tap letter tiles to spell the picture)
+   ============================================================ */
+let spellSeen = [];
+function roundSpell(){
+  // rounds 0-2 use 3-letter words, 3-5 use 4-letter words
+  const pool = (round < 3 ? W3 : W4).filter(x=>!spellSeen.includes(x.w));
+  const item = pick(pool.length ? pool : (round<3 ? W3 : W4));
+  spellSeen.push(item.w); if(spellSeen.length>14) spellSeen.shift();
+
+  const target = item.w.toUpperCase();
+  const extras = 2;
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(c=>!target.includes(c));
+  const tileLetters = shuffle(target.split('').concat(sample(alphabet, extras)));
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask">
+      <b>Spell the word</b>
+      <button class="hearbtn" id="hear">🔊</button>
+    </div>
+    <div class="bigpic">${item.e}</div>
+    <div class="slots" id="slots"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const slots = $('slots'), tiles = $('tiles'), fb = $('fb');
+  let at = 0;
+  const placed = [];
+
+  for(let i=0;i<target.length;i++){
+    const d = document.createElement('div');
+    d.className = 'slot'; d.textContent = '';
+    slots.appendChild(d);
+  }
+
+  tileLetters.forEach(ch=>{
+    const b = document.createElement('button');
+    b.className = 'tile'; b.textContent = ch;
+    b.addEventListener('click', ()=>{
+      if(at >= target.length || b.classList.contains('used')) return;
+      if(ch === target[at]){
+        sndTap(); speak(ch, .7);
+        const s = slots.children[at];
+        s.textContent = ch; s.classList.remove('err'); s.classList.add('has');
+        b.classList.add('used');
+        placed.push(b);
+        at++;
+        fb.textContent = ' '; fb.className = 'fb';
+        if(at === target.length){
+          [...slots.children].forEach(s=>{ s.classList.remove('has'); s.classList.add('win'); });
+          setTimeout(()=>spellOut(target), 260);
+          setTimeout(()=>win(slots, `You spelled ${item.w}!`), 1000);
+        }
+      } else {
+        const s = slots.children[at];
+        s.classList.remove('err'); void s.offsetWidth; s.classList.add('err');
+        fb.textContent = `Listen for the ${at===0?'first':at===target.length-1?'last':'next'} sound…`;
+        fb.className = 'fb no';
+        lose();
+        setTimeout(()=>{ if(state.voice) speak(target[at], .6); }, 700);
+      }
+    });
+    tiles.appendChild(b);
+  });
+
+  const say = ()=>{ speak(item.w, .76); };
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+/* ============================================================
+   GAME 2 — FIRST SOUND  (which picture starts with this letter?)
+   ============================================================ */
+let soundSeen = [];
+function roundSound(){
+  const pool = WORDS.filter(x=>!soundSeen.includes(x.w));
+  const right = pick(pool.length>8 ? pool : WORDS);
+  soundSeen.push(right.w); if(soundSeen.length>14) soundSeen.shift();
+
+  const L = right.w[0];
+  const twins = SOUND_TWINS[L] || '';
+  const wrongs = sample(WORDS.filter(x=>x.w[0] !== L && !twins.includes(x.w[0])), 2);
+  const items = shuffle([right, ...wrongs]);
+  const ci = items.indexOf(right);
+  const LU = L.toUpperCase();
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask">
+      <b>Which one starts with…</b>
+    </div>
+    <div class="slots">
+      <div class="slot has lit" style="width:auto;min-width:clamp(78px,20vw,100px)">${LU}${L}</div>
+    </div>
+    <button class="hearbtn big ping" id="hear">🔊</button>
+    <div class="fb" id="fb">Tap the speaker to hear it again</div>`;
+
+  const fb = $('fb');
+  const grid = choiceGrid(items.map(x=>`<span class="pic">${x.e}</span>`), ci, 3, (ok, el)=>{
+    if(ok){
+      fb.textContent = `${right.w} starts with ${LU}!`; fb.className='fb ok';
+      setTimeout(()=>speak(`${right.w}. ${LU} is for ${right.w}.`, .8), 200);
+      setTimeout(()=>win(el), 1200);
+    } else {
+      fb.textContent = lose(); fb.className='fb no';
+    }
+  });
+  st.insertBefore(grid, fb);
+
+  const say = ()=>speak(`Which one starts with the letter ${LU}?`, .82);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+/* ============================================================
+   GAME 3 — READ & FIND  (read the word, tap the picture)
+   ============================================================ */
+let readSeen = [];
+function roundRead(){
+  const pool = (round<3 ? W3 : WORDS).filter(x=>!readSeen.includes(x.w));
+  const right = pick(pool.length>6 ? pool : WORDS);
+  readSeen.push(right.w); if(readSeen.length>14) readSeen.shift();
+
+  const wrongs = sample(WORDS.filter(x=>x.w !== right.w && x.e !== right.e), 2);
+  const items = shuffle([right, ...wrongs]);
+  const ci = items.indexOf(right);
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask"><b>Read the word, then find the picture</b></div>
+    <div class="slots" id="wordRow"></div>
+    <div class="tracetools"><button class="btn ghost" id="hear">🔊 Sound it out</button></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const row = $('wordRow');
+  right.w.toUpperCase().split('').forEach(ch=>{
+    const d = document.createElement('div');
+    d.className = 'slot has lit'; d.textContent = ch;
+    row.appendChild(d);
+  });
+
+  const fb = $('fb');
+  const grid = choiceGrid(items.map(x=>`<span class="pic">${x.e}</span>`), ci, 3, (ok, el)=>{
+    if(ok){
+      fb.textContent = `Yes — ${right.w}!`; fb.className='fb ok';
+      setTimeout(()=>speak(right.w, .78), 180);
+      setTimeout(()=>win(el), 1150);
+    } else {
+      fb.textContent = lose(); fb.className='fb no';
+      setTimeout(()=>spellOut(right.w), 650);
+    }
+  });
+  st.insertBefore(grid, $('fb'));
+
+  $('hear').addEventListener('click', ()=>{ sndTap(); spellOut(right.w); });
+  setTimeout(()=>speak('Read the word.', .85), 350);
+}
+
+/* ============================================================
+   GAME 4 — PATTERN PLAY  (what comes next?)
+   ============================================================ */
+const PAT_SETS = [
+  ['🔴','🔵'], ['🟡','🟢'], ['🟣','🟠'], ['⭐','❤️'], ['🍎','🍌'],
+  ['🐶','🐱'], ['🔺','🟦'], ['🌸','🍀'], ['⚽','🏀'], ['🐸','🐤'],
+  ['🟥','🟨','🟦'], ['🔷','🔶','⬜'], ['🐝','🦋','🐞'], ['🍓','🥝','🍋']
+];
+function roundPattern(){
+  // shapes get harder as rounds go on
+  const rules = round < 2 ? ['AB'] : round < 4 ? ['AB','AAB','ABB'] : ['AAB','ABB','ABC','AABB'];
+  const rule = pick(rules);
+  const need = rule === 'ABC' ? 3 : 2;
+  let set = pick(PAT_SETS.filter(s=>s.length>=need));
+  set = shuffle(set).slice(0,need);
+
+  const unit = rule.split('').map(c=>set['ABC'.indexOf(c)]);
+  const seq = [];
+  while(seq.length < unit.length*2 + rand(1,2)) seq.push(unit[seq.length % unit.length]);
+  const answer = unit[seq.length % unit.length];
+
+  const wrongPool = shuffle(set.concat(PAT_SETS.flat())).filter(x=>x !== answer);
+  const wrongs = [];
+  for(const x of wrongPool){ if(!wrongs.includes(x)) wrongs.push(x); if(wrongs.length===2) break; }
+  const items = shuffle([answer, ...wrongs]);
+  const ci = items.indexOf(answer);
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask">
+      <b>What comes next?</b>
+      <button class="hearbtn" id="hear">🔊</button>
+    </div>
+    <div class="strip" id="strip"></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const strip = $('strip');
+  seq.forEach((x,i)=>{
+    const c = document.createElement('div');
+    c.className = 'cell'; c.textContent = x;
+    c.style.animation = `in .3s var(--spring) ${i*0.07}s backwards`;
+    strip.appendChild(c);
+  });
+  const q = document.createElement('div');
+  q.className = 'cell q'; q.textContent = '?';
+  strip.appendChild(q);
+
+  const fb = $('fb');
+  const grid = choiceGrid(items.map(x=>`<span class="pic">${x}</span>`), ci, 3, (ok, el)=>{
+    if(ok){
+      q.textContent = answer; q.className = 'cell filled';
+      fb.textContent = 'That finishes the pattern!'; fb.className='fb ok';
+      setTimeout(()=>win(el), 1050);
+    } else {
+      fb.textContent = lose(); fb.className='fb no';
+      setTimeout(()=>speak('Look at the order again.', .85), 700);
+    }
+  });
+  st.insertBefore(grid, fb);
+
+  const say = ()=>speak('What comes next in the pattern?', .85);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+/* ============================================================
+   GAME 5 — COUNT IT  (count, compare, find the missing number)
+   ============================================================ */
+const COUNT_ICONS = ['🍎','⭐','🐞','🌼','🐟','🎈','🍓','🧸','🐥','🍪','🦋','🟣'];
+function roundCount(){
+  const kind = round === 0 ? 'count' : round === 1 ? 'count'
+            : round === 2 ? 'more'  : round === 3 ? 'count'
+            : round === 4 ? 'missing' : pick(['count','more','missing']);
+  if(kind === 'count')   return countHow();
+  if(kind === 'more')    return countMore();
+  return countMissing();
+}
+
+function countHow(){
+  const max = round < 3 ? 10 : 20;
+  const n = rand(round < 3 ? 2 : 8, max);
+  const ic = pick(COUNT_ICONS);
+  const span = max <= 10 ? 2 : 3;
+  const wrongs = new Set();
+  while(wrongs.size < 2){
+    const d = rand(1,span) * (Math.random()<.5 ? -1 : 1);
+    const v = n + d;
+    if(v >= 1 && v <= 20 && v !== n) wrongs.add(v);
+  }
+  const items = shuffle([n, ...wrongs]);
+  const ci = items.indexOf(n);
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask"><b>How many?</b><button class="hearbtn" id="hear">🔊</button></div>
+    <div class="field" id="field"></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const f = $('field');
+  f.innerHTML = Array.from({length:n},(_,i)=>
+    `<span style="animation-delay:${(i*.05).toFixed(2)}s">${ic}</span>`).join('');
+
+  const fb = $('fb');
+  const grid = choiceGrid(items.map(v=>`<span class="num">${v}</span>`), ci, 3, (ok, el)=>{
+    if(ok){
+      fb.textContent = `There are ${n}!`; fb.className='fb ok';
+      // count them out loud
+      [...f.children].forEach((c,i)=>setTimeout(()=>{ c.style.transform='scale(1.3)'; sndTap();
+        setTimeout(()=>c.style.transform='', 150); }, i*110));
+      setTimeout(()=>win(el, `${n}! That's right.`), Math.min(n*110+500, 1800));
+    } else {
+      fb.textContent = 'Count them one at a time…'; fb.className='fb no';
+      lose();
+    }
+  });
+  st.insertBefore(grid, fb);
+
+  const say = ()=>speak('How many do you see?', .85);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+function countMore(){
+  const wantMore = Math.random() < .6;
+  let a = rand(3,14), b = rand(3,14);
+  while(Math.abs(a-b) < 2 || a === b) b = rand(3,14);
+  const icA = pick(COUNT_ICONS), icB = pick(COUNT_ICONS.filter(x=>x!==icA));
+  const correct = wantMore ? (a > b ? 0 : 1) : (a < b ? 0 : 1);
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask"><b>Which side has ${wantMore?'MORE':'FEWER'}?</b><button class="hearbtn" id="hear">🔊</button></div>
+    <div class="pens" id="pens"></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const pens = $('pens'), fb = $('fb');
+  [[a,icA],[b,icB]].forEach(([n,ic],i)=>{
+    const p = document.createElement('button');
+    p.className = 'pen';
+    p.innerHTML = Array.from({length:n},()=>`<span>${ic}</span>`).join('');
+    p.addEventListener('click', ()=>{
+      if(pens.dataset.locked) return;
+      if(i === correct){
+        pens.dataset.locked='1'; p.classList.add('good');
+        fb.textContent = `Yes! ${n} is ${wantMore?'more':'fewer'}.`; fb.className='fb ok';
+        setTimeout(()=>win(p), 1050);
+      } else {
+        p.classList.remove('bad'); void p.offsetWidth; p.classList.add('bad');
+        fb.textContent = lose(); fb.className='fb no';
+      }
+    });
+    pens.appendChild(p);
+  });
+
+  const say = ()=>speak(`Which side has ${wantMore?'more':'fewer'}?`, .85);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+function countMissing(){
+  const start = rand(1,15);
+  const len = 5;
+  const gap = rand(1, len-2);           // never the first slot
+  const seq = Array.from({length:len},(_,i)=>start+i);
+  const answer = seq[gap];
+  const wrongs = new Set();
+  while(wrongs.size < 2){
+    const v = answer + rand(1,3)*(Math.random()<.5?-1:1);
+    if(v >= 1 && v <= 20 && v !== answer) wrongs.add(v);
+  }
+  const items = shuffle([answer, ...wrongs]);
+  const ci = items.indexOf(answer);
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask"><b>Which number is missing?</b><button class="hearbtn" id="hear">🔊</button></div>
+    <div class="strip" id="strip"></div>
+    <div class="fb" id="fb">&nbsp;</div>`;
+
+  const strip = $('strip');
+  let qCell = null;
+  seq.forEach((v,i)=>{
+    const c = document.createElement('div');
+    if(i === gap){ c.className='cell q'; c.textContent='?'; qCell = c; }
+    else { c.className='cell'; c.textContent = v; c.style.fontWeight='800'; c.style.fontSize='clamp(22px,6vw,30px)'; }
+    strip.appendChild(c);
+  });
+
+  const fb = $('fb');
+  const grid = choiceGrid(items.map(v=>`<span class="num">${v}</span>`), ci, 3, (ok, el)=>{
+    if(ok){
+      qCell.textContent = answer; qCell.className = 'cell filled';
+      qCell.style.fontWeight='800'; qCell.style.fontSize='clamp(22px,6vw,30px)';
+      fb.textContent = 'That fits!'; fb.className='fb ok';
+      setTimeout(()=>speak(seq.join(', '), .78), 200);
+      setTimeout(()=>win(el), 1300);
+    } else {
+      fb.textContent = lose(); fb.className='fb no';
+      setTimeout(()=>speak(`${seq[gap-1]}, then what?`, .82), 700);
+    }
+  });
+  st.insertBefore(grid, fb);
+
+  const say = ()=>speak('Which number is missing?', .85);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+/* ============================================================
+   GAME 6 — LETTER TRACING
+   Draw on a canvas; score by how much of the letter shape the
+   child covered. The letter mask is read straight from the font,
+   so it always matches what's on screen.
+   ============================================================ */
+let traceCtx = null, traceMask = null, traceCells = null, traceGrid = 0,
+    traceDrawn = null, traceDrawing = false, traceStrokes = 0, traceLetters = [];
+
+function stopTrace(){ traceDrawing = false; }
+
+function roundTrace(){
+  if(round === 0){
+    const upper = sample('ABCDEFGHJKLMNPRSTUVWXY'.split(''), 3);
+    const lower = sample('abcdefghmnoprstuvwy'.split(''), 3);
+    traceLetters = shuffle(upper.concat(lower));
+  }
+  const ch = traceLetters[round] || pick('ABCDEFG'.split(''));
+
+  const st = $('stage');
+  st.innerHTML = `
+    <div class="ask">
+      <b>Trace the letter <span class="lit" style="font-size:1.25em">${ch}</span></b>
+      <button class="hearbtn" id="hear">🔊</button>
+    </div>
+    <div class="tracewrap"><canvas id="traceCv"></canvas></div>
+    <div class="tracetools">
+      <button class="btn ghost" id="clr">↺ Start over</button>
+      <button class="btn go" id="done">I'm done ✓</button>
+    </div>
+    <div class="fb" id="fb">Use your finger to follow the grey letter</div>`;
+
+  const cv = $('traceCv'), fb = $('fb');
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const box = cv.getBoundingClientRect();
+  const W = Math.round(box.width * dpr), H = Math.round(box.height * dpr);
+  cv.width = W; cv.height = H;
+  traceCtx = cv.getContext('2d');
+
+  // uppercase and lowercase glyphs differ hugely in drawn size at the same font-size,
+  // so measure the real ink box and scale it to fill the canvas either way
+  function fitGlyph(c){
+    c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    const base = Math.round(H*0.7);
+    c.font = `700 ${base}px Andika, Outfit, sans-serif`;
+    let m = c.measureText(ch);
+    const gw = m.actualBoundingBoxRight + m.actualBoundingBoxLeft;
+    const gh = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    const size = Math.round(base * Math.min(H*0.68/gh, W*0.62/gw));
+    c.font = `700 ${size}px Andika, Outfit, sans-serif`;
+    m = c.measureText(ch);
+    return [
+      W/2 - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft)/2,
+      H/2 + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent)/2
+    ];
+  }
+
+  function buildMask(){
+    // draw the letter into an offscreen canvas and read its pixels
+    const off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    const o = off.getContext('2d');
+    o.fillStyle = '#000';
+    const [gx, gy] = fitGlyph(o);
+    o.fillText(ch, gx, gy);
+    const px = o.getImageData(0,0,W,H).data;
+
+    traceGrid = Math.max(6, Math.round(W/26));           // cell size in px
+    const cols = Math.ceil(W/traceGrid), rows = Math.ceil(H/traceGrid);
+    traceCells = {cols, rows};
+    traceMask = new Uint8Array(cols*rows);
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        if(px[(y*W+x)*4+3] > 90){
+          traceMask[(y/traceGrid|0)*cols + (x/traceGrid|0)] = 1;
+        }
+      }
+    }
+    traceDrawn = new Uint8Array(cols*rows);
+
+    // visible guide letter
+    traceCtx.clearRect(0,0,W,H);
+    traceCtx.save();
+    const [vx, vy] = fitGlyph(traceCtx);
+    traceCtx.fillStyle = '#e3e8f6';
+    traceCtx.fillText(ch, vx, vy);
+    traceCtx.lineWidth = Math.max(2, dpr*1.6);
+    traceCtx.strokeStyle = '#aab5d8';
+    traceCtx.setLineDash([dpr*8, dpr*8]);
+    traceCtx.strokeText(ch, vx, vy);
+    traceCtx.restore();
+
+    traceCtx.lineWidth = Math.max(16, W*0.065);
+    traceCtx.lineCap = 'round'; traceCtx.lineJoin = 'round';
+    traceCtx.strokeStyle = '#5b6cff';
+    traceStrokes = 0;
+  }
+
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(buildMask);
+  else buildMask();
+
+  const pos = e => {
+    const r = cv.getBoundingClientRect();
+    return [(e.clientX - r.left) * (W/r.width), (e.clientY - r.top) * (H/r.height)];
+  };
+  function markAround(x,y){
+    if(!traceDrawn) return;
+    const {cols,rows} = traceCells;
+    const pad = Math.ceil(traceCtx.lineWidth/2/traceGrid);
+    const cx = x/traceGrid|0, cy = y/traceGrid|0;
+    for(let j=-pad;j<=pad;j++) for(let i=-pad;i<=pad;i++){
+      const gx = cx+i, gy = cy+j;
+      if(gx>=0 && gy>=0 && gx<cols && gy<rows) traceDrawn[gy*cols+gx] = 1;
+    }
+  }
+  cv.addEventListener('pointerdown', e=>{
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    traceDrawing = true; traceStrokes++;
+    const [x,y] = pos(e);
+    traceCtx.beginPath(); traceCtx.moveTo(x,y); traceCtx.lineTo(x+.1,y);
+    traceCtx.stroke(); markAround(x,y);
+  });
+  cv.addEventListener('pointermove', e=>{
+    if(!traceDrawing) return;
+    e.preventDefault();
+    const [x,y] = pos(e);
+    traceCtx.lineTo(x,y); traceCtx.stroke(); markAround(x,y);
+  });
+  const up = ()=>{ traceDrawing = false; };
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', up);
+
+  $('clr').addEventListener('click', ()=>{ sndTap(); buildMask(); fb.textContent='Fresh start — follow the grey letter'; fb.className='fb'; });
+
+  $('done').addEventListener('click', ()=>{
+    if(!traceMask || traceStrokes === 0){
+      fb.textContent = 'Draw on the letter first!'; fb.className='fb no'; sndNo(); return;
+    }
+    let total=0, hit=0, stray=0;
+    for(let i=0;i<traceMask.length;i++){
+      if(traceMask[i]){ total++; if(traceDrawn[i]) hit++; }
+      else if(traceDrawn[i]) stray++;
+    }
+    const cover = total ? hit/total : 0;
+    const strayRatio = total ? stray/total : 9;
+    if(cover >= 0.62 && strayRatio <= 1.5){
+      $('done').disabled = true;   // kids tap repeatedly; one pass = one star
+      fb.textContent = `Beautiful ${ch}!`; fb.className='fb ok';
+      setTimeout(()=>speak(`Nice writing! That's the letter ${ch.toUpperCase()}.`, .84), 200);
+      setTimeout(()=>win(cv), 1200);
+    } else if(cover < 0.62){
+      fb.textContent = 'Try to cover the whole letter!'; fb.className='fb no';
+      lose();
+    } else {
+      fb.textContent = 'Stay on the grey letter — tap Start over.'; fb.className='fb no';
+      lose();
+    }
+  });
+
+  const say = ()=>speak(`Trace the letter ${ch.toUpperCase()}.`, .84);
+  $('hear').addEventListener('click', ()=>{ sndTap(); say(); });
+  setTimeout(say, 380);
+}
+
+/* ============================================================
+   ☁️ CLOUD SYNC — Supabase + Family Code
+   ============================================================ */
+let supa = null, cloudReady = false, cloudTimer = null;
+const cloudConfigured = () =>
+  typeof SUPABASE_URL==='string' && SUPABASE_URL.startsWith('http')
+  && typeof SUPABASE_ANON_KEY==='string' && SUPABASE_ANON_KEY.length > 20
+  && !SUPABASE_URL.includes('PASTE_') && !SUPABASE_ANON_KEY.includes('PASTE_');
+
+function initCloud(){
+  if(!cloudConfigured() || typeof supabase === 'undefined') return;
+  try{ supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); cloudReady = true; }
+  catch(e){ console.warn('cloud init failed', e); }
+}
+async function cloudLoad(code){
+  if(!cloudReady || !code) return null;
+  try{ const { data, error } = await supa.rpc('load_save', { p_code: code }); if(error){ console.warn(error); return null; } return data; }
+  catch(e){ console.warn(e); return null; }
+}
+async function cloudSave(code, data){
+  if(!cloudReady || !code) return false;
+  try{ const { error } = await supa.rpc('save_progress', { p_code: code, p_data: data }); if(error){ console.warn(error); return false; } return true; }
+  catch(e){ console.warn(e); return false; }
+}
+function scheduleCloudPush(){
+  if(!cloudReady || !state.code) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(()=>cloudSave(state.code, snapshot()), 1200);
+}
+function applyData(d){
+  if(!d) return;
+  state.stars = d.stars|0;
+  state.best  = (d.best && typeof d.best==='object') ? d.best : {};
+  state.voice = d.voice !== false;
+  state.t     = d.t || Date.now();
+  persistLocal();
+  renderStars(); renderSound();
+  if(screen === 'home') renderHome();
+  if(screen === 'buddies') renderBuddies();
+}
+
+const CODE_A = ['SUNNY','HAPPY','LUCKY','BRAVE','JOLLY','MAGIC','SUPER','COZY','SILLY','SHINY','SPARKLY','GIGGLY'];
+const CODE_B = ['FOX','CAT','OWL','BEAR','DUCK','LION','FROG','BUNNY','PANDA','KOALA','TIGER','PUPPY'];
+const makeCode = () => `${pick(CODE_A)}-${pick(CODE_B)}-${rand(10,99)}`;
+
+function syncNote(msg, err){ const el=$('syncNote'); el.textContent = msg||''; el.classList.toggle('err', !!err); }
+function renderSync(){
+  const on = !!state.code;
+  $('syncOn').style.display  = on ? '' : 'none';
+  $('syncOff').style.display = on ? 'none' : '';
+  if(on) $('syncCode').textContent = state.code;
+  $('syncBtn').classList.toggle('on', on && cloudReady);
+  if(!cloudConfigured()) syncNote('Cloud not set up yet — progress saves on this device only.');
+}
+async function linkCode(raw){
+  const code = (raw||'').trim().toUpperCase();
+  if(code.length < 3){ syncNote('Please type a code.', true); return; }
+  if(!cloudReady){ syncNote('Cloud is not set up yet (no Supabase keys).', true); return; }
+  state.code = code; syncNote('Connecting…');
+  const cloud = await cloudLoad(code);
+  if(cloud){ applyData(cloud); syncNote('Linked! Loaded your stars. ☁️'); }
+  else { await cloudSave(code, snapshot()); syncNote('Linked! This device is connected. ☁️'); }
+  persistLocal(); renderSync(); sndStar();
+}
+async function bootCloud(){
+  initCloud();
+  if(cloudReady && state.code){
+    const cloud = await cloudLoad(state.code);
+    if(cloud && (cloud.t||0) > (state.t||0)) applyData(cloud);
+    $('syncBtn').classList.add('on');
+  }
+}
+
+/* ============================================================
+   WIRING + INIT
+   ============================================================ */
+function renderSound(){
+  const b = $('soundBtn');
+  b.textContent = state.voice ? '🔊' : '🔇';
+  b.classList.toggle('on', state.voice);
+}
+
+(function mesh(){
+  const cols = ['#cdd4ff','#ffd3e4','#c9f2e7','#d6ecff','#ffe6c2','#e5d6ff'];
+  const box = $('mesh');
+  for(let i=0;i<6;i++){
+    const b = document.createElement('i');
+    const s = 200 + Math.random()*260;
+    b.style.width = s+'px'; b.style.height = s+'px';
+    b.style.background = cols[i];
+    b.style.left = (Math.random()*106-12)+'%';
+    b.style.top  = (Math.random()*106-12)+'%';
+    b.style.animationDelay = (Math.random()*12)+'s';
+    b.style.animationDuration = (20+Math.random()*14)+'s';
+    box.appendChild(b);
+  }
+})();
+
+document.querySelectorAll('#bot button').forEach(b=>{
+  b.addEventListener('click', ()=>{ sndTap(); go(b.dataset.go); });
+});
+$('brand').addEventListener('click', ()=>{ sndTap(); go('home'); });
+$('backBtn').addEventListener('click', ()=>{ sndTap(); go('home'); });
+$('starChip').addEventListener('click', ()=>{ sndTap(); go('buddies'); });
+$('soundBtn').addEventListener('click', ()=>{
+  state.voice = !state.voice; renderSound(); save(); sndTap();
+  if(state.voice) speak('Voice is on!'); else { try{ speechSynthesis.cancel(); }catch(e){} }
+  toast(state.voice ? 'Voice on 🔊' : 'Voice off 🔇');
+});
+$('syncBtn').addEventListener('click', ()=>{ sndTap(); renderSync(); $('syncSheet').classList.add('show'); });
+$('syncX').addEventListener('click', ()=>$('syncSheet').classList.remove('show'));
+$('syncSheet').addEventListener('click', e=>{ if(e.target.id==='syncSheet') $('syncSheet').classList.remove('show'); });
+$('syncMake').addEventListener('click', ()=>linkCode(makeCode()));
+$('syncJoin').addEventListener('click', ()=>linkCode($('syncIn').value));
+$('syncIn').addEventListener('keydown', e=>{ if(e.key==='Enter') linkCode($('syncIn').value); });
+$('syncCopy').addEventListener('click', ()=>{
+  if(!state.code) return;
+  navigator.clipboard?.writeText(state.code).then(()=>syncNote('Code copied! 📋')).catch(()=>{});
+});
+
+renderStars(); renderSound(); renderHome();
+bootCloud();
+
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw failed', e));
+}
+// browsers need a real gesture before audio can start
+document.addEventListener('pointerdown', function unlock(){ audio(); document.removeEventListener('pointerdown', unlock); });
+</script>
+</body>
+</html>

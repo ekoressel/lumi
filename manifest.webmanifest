@@ -1,0 +1,16 @@
+{
+  "name": "Lumi",
+  "short_name": "Lumi",
+  "description": "A sleek, playful learning app for TK: short words, patterns, counting and letter tracing.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f6fb",
+  "theme_color": "#5b6cff",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
